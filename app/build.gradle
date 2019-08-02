@@ -5,7 +5,6 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 23
     buildToolsVersion "23.0.3"
-
     defaultConfig {
         minSdkVersion 15
     }
@@ -22,7 +21,6 @@ android {
             variant.ignore = true
         }
     }
-
     // Add the hidden API stub classes to the bootclasspath.
     // As they have to be injected before the official SDK classes and must not be part of the
     // final JAR/APK, the best way seems to compile them in a separate project and use some dirty
@@ -32,20 +30,24 @@ android {
         hiddenapi.android.compileSdkVersion compileSdkVersion
         hiddenapi.android.buildToolsVersion buildToolsVersion
         preBuild.dependsOn ':hiddenapistubs:assembleRelease'
-        hiddenapi.preBuild << {
-            def hiddenapiCompiler = hiddenapi.android.libraryVariants[0].javaCompiler
-            def hiddenapiDestPath = hiddenapiCompiler.destinationDir.getAbsolutePath()
-            applicationVariants.all { variant ->
-                variant.javaCompiler.with {
-                    dependsOn hiddenapiCompiler
-                    options.bootClasspath = hiddenapiDestPath + File.pathSeparator + options.bootClasspath
-                    if (variant.name == BuilderConstants.RELEASE) {
-                        generateDocs.options.bootClasspath = files(options.bootClasspath.split(File.pathSeparator), destinationDir).asType(List)
-                        generateStubs.options.bootClasspath = generateDocs.options.bootClasspath
-                        compileStubs.classpath = files(options.bootClasspath.split(File.pathSeparator))
+        hiddenapi.preBuild  {
+            hiddenapi.android.libraryVariants.all{libraryVariant->
+                def hiddenapiCompiler = libraryVariant.javaCompiler
+                def hiddenapiDestPath = hiddenapiCompiler.destinationDir.getAbsolutePath()
+                applicationVariants.all { variant ->
+                    variant.javaCompiler.with {
+                        dependsOn hiddenapiCompiler
+                        options.bootClasspath = hiddenapiDestPath + File.pathSeparator + options.bootClasspath
+                        if (variant.name == BuilderConstants.RELEASE) {
+                            generateDocs.options.bootClasspath = files(options.bootClasspath.split(File.pathSeparator), destinationDir).asType(List)
+                            generateStubs.options.bootClasspath = generateDocs.options.bootClasspath
+                            compileStubs.classpath = files(options.bootClasspath.split(File.pathSeparator))
+                        }
                     }
                 }
             }
+
+
         }
     }
 }
